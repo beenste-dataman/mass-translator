@@ -2,7 +2,8 @@ import os
 import argparse
 import sys
 from tqdm import tqdm
-
+import xlrd
+import xlwt
 # Required libraries
 import docx
 import openpyxl
@@ -59,6 +60,8 @@ def translate_file(file_path):
         translate_docx(file_path)
     elif file_ext == ".xlsx":
         translate_xlsx(file_path)
+    elif file_ext == ".xls":
+        translate_xls(file_path)
     elif file_ext == ".csv":
         translate_csv(file_path)
     elif file_ext == ".json":
@@ -143,6 +146,29 @@ def translate_html(file_path):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as file:
         file.write(str(soup))
+
+
+def translate_xls(file_path):
+    workbook = xlrd.open_workbook(file_path)
+    translated_workbook = xlwt.Workbook()
+
+    for sheet_idx in range(workbook.nsheets):
+        sheet = workbook.sheet_by_index(sheet_idx)
+        translated_sheet = translated_workbook.add_sheet(sheet.name)
+
+        for row_idx in range(sheet.nrows):
+            for col_idx in range(sheet.ncols):
+                cell_value = sheet.cell_value(row_idx, col_idx)
+
+                if isinstance(cell_value, str):
+                    translated_text = translate_text(cell_value)
+                    translated_sheet.write(row_idx, col_idx, translated_text)
+                else:
+                    translated_sheet.write(row_idx, col_idx, cell_value)
+
+    output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    translated_workbook.save(output_path)
 
         
 # Rest of the code remains the same
