@@ -68,6 +68,83 @@ def translate_file(file_path):
     else:
         print(f"Unsupported file type: {file_ext}")
 
+        
+# file handlers
+
+def translate_dict(obj):
+    if isinstance(obj, dict):
+        return {key: translate_dict(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [translate_dict(item) for item in obj]
+    elif isinstance(obj, str):
+        return translate_text(obj)
+    else:
+        return obj
+
+   
+# Define translation functions for each file type
+def translate_docx(file_path):
+    doc = docx.Document(file_path)
+    for paragraph in doc.paragraphs:
+        translated_text = translate_text(paragraph.text)
+        paragraph.text = translated_text
+
+    output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    doc.save(output_path)
+
+def translate_xlsx(file_path):
+    workbook = openpyxl.load_workbook(file_path)
+    for sheet in workbook.worksheets:
+        for row in sheet:
+            for cell in row:
+                if isinstance(cell.value, str):
+                    translated_text = translate_text(cell.value)
+                    cell.value = translated_text
+
+    output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    workbook.save(output_path)
+
+def translate_csv(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        reader = csv.reader(file)
+        rows = list(reader)
+
+    translated_rows = []
+    for row in rows:
+        translated_row = [translate_text(cell) for cell in row]
+        translated_rows.append(translated_row)
+
+    output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerows(translated_rows)
+
+def translate_json(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        data = json.load(file)
+
+    translated_data = translate_dict(data)
+
+    output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as file:
+        json.dump(translated_data, file, ensure_ascii=False, indent=2)
+
+def translate_html(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        soup = BeautifulSoup(file.read(), "html.parser")
+
+    translate_soup(soup)
+
+    output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as file:
+        file.write(str(soup))
+
+        
 # Rest of the code remains the same
 
 if __name__ == "__main__":
