@@ -31,11 +31,12 @@ def translate_text(text):
     # If the text is empty or contains only whitespace, return it as-is
     if not text.strip():
         return text
-
+    print(f"Translating: {text[:50]}...")  # progress verbosity
     # Tokenize and translate the text
     tokenized_text = tokenizer(text, return_tensors="pt")
     translated_tokens = model.generate(**tokenized_text)
     translated_text = tokenizer.decode(translated_tokens[0], skip_special_tokens=True)
+    print(f"Translated: {translated_text[:50]}...")  # further verbosity
     return translated_text
 
 # File processing function
