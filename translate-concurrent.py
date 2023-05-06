@@ -12,7 +12,9 @@ import json
 from bs4 import BeautifulSoup
 from transformers import MarianMTModel, MarianTokenizer
 from concurrent.futures import ThreadPoolExecutor
-from pyodf import opendocument, text
+from odf.opendocument import OpenDocumentText
+from odf.text import P, Span
+from odf import teletype
 
 
 def parse_args():
@@ -196,15 +198,16 @@ def translate_xls(file_path):
 
     
 def translate_odt(file_path):
-    document = opendocument.load(file_path)
-    translated_document = opendocument.Text()
+    document = OpenDocumentText(file_path)
+    translated_document = OpenDocumentText()
 
-    for element in document.body.getElementsByType(text.P):
-        paragraph = text.P()
+    for element in document.getElementsByType(P):
+        paragraph = P()
         for child in element.childNodes:
-            if isinstance(child, text.Span):
-                translated_text = translate_text(child.firstChild.data)
-                span = text.Span(text=translated_text)
+            if child.qname[1] == "span":
+                translated_text = translate_text(teletype.extractText(child))
+                span = Span()
+                span.addText(translated_text)
                 paragraph.addElement(span)
             elif isinstance(child, str):
                 translated_text = translate_text(child)
@@ -213,8 +216,7 @@ def translate_odt(file_path):
 
     output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    translated_document.save(output_path)
-    
+    translated_document.save(output_path)   
     
     
 def translate_txt(file_path):
