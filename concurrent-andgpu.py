@@ -9,6 +9,7 @@ import docx
 import openpyxl
 import csv
 import json
+import torch
 from bs4 import BeautifulSoup
 from transformers import MarianMTModel, MarianTokenizer
 from concurrent.futures import ThreadPoolExecutor
