@@ -70,7 +70,7 @@ def translate_text(text):
         tokenized_chunk = tokenizer(chunk, return_tensors="pt")
         input_ids = tokenized_chunk["input_ids"].to(device)  # Move input tensor to the device
 
-        translated_tokens = model.generate(input_ids, max_length=720)
+        translated_tokens = model.generate(input_ids)
         translated_chunk = tokenizer.decode(translated_tokens[0], skip_special_tokens=True)
 
         print(f"Translated: {translated_chunk[:50]}...")  # further verbosity
