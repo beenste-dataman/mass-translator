@@ -17,6 +17,18 @@ from odf.opendocument import OpenDocumentText
 from odf.text import P, Span
 from odf import teletype
 
+art = '''
+                                 __                              .__          __                
+  _____ _____    ______ ______ _/  |_____________    ____   _____|  | _____ _/  |_  ___________ 
+ /     \\__  \  /  ___//  ___/ \   __\_  __ \__  \  /    \ /  ___/  | \__  \\   __\/  _ \_  __ \
+|  Y Y  \/ __ \_\___ \ \___ \   |  |  |  | \// __ \|   |  \\___ \|  |__/ __ \|  | (  <_> )  | \/
+|__|_|  (____  /____  >____  >  |__|  |__|  (____  /___|  /____  >____(____  /__|  \____/|__|   
+      \/     \/     \/     \/                    \/     \/     \/          \/                   
+'''
+
+print(art)
+
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Translate files in a directory and its subdirectories.")
@@ -44,16 +56,28 @@ def translate_text(text):
     # If the text is empty or contains only whitespace, return it as-is
     if not text.strip():
         return text
-    print(f"Translating: {text[:50]}...")  # progress verbosity
 
-    # Tokenize and translate the text
-    tokenized_text = tokenizer(text, return_tensors="pt")
-    input_ids = tokenized_text["input_ids"].to(device)  # Move input tensor to the device
+    # Split the input text into chunks of approximately 100 words
+    text_chunks = text.split(' ')
+    chunk_size = 100
+    chunks = [' '.join(text_chunks[i:i + chunk_size]) for i in range(0, len(text_chunks), chunk_size)]
 
-    translated_tokens = model.generate(input_ids)
-    translated_text = tokenizer.decode(translated_tokens[0], skip_special_tokens=True)
+    translated_chunks = []
+    for chunk in chunks:
+        print(f"Translating: {chunk[:50]}...")  # progress verbosity
 
-    print(f"Translated: {translated_text[:50]}...")  # further verbosity
+        # Tokenize and translate the chunk
+        tokenized_chunk = tokenizer(chunk, return_tensors="pt")
+        input_ids = tokenized_chunk["input_ids"].to(device)  # Move input tensor to the device
+
+        translated_tokens = model.generate(input_ids, max_length=720)
+        translated_chunk = tokenizer.decode(translated_tokens[0], skip_special_tokens=True)
+
+        print(f"Translated: {translated_chunk[:50]}...")  # further verbosity
+        translated_chunks.append(translated_chunk)
+
+    # Combine the translated chunks
+    translated_text = ' '.join(translated_chunks)
     return translated_text
 
 
