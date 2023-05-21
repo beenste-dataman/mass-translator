@@ -12,7 +12,7 @@ import json
 import torch
 import chardet
 import os
-import win32com.client
+import subprocess
 import email
 import magic
 from email import policy
@@ -216,15 +216,10 @@ def translate_rtf(file_path):
 #doc handling        
         
 def doc_to_docx(file_path):
-    # Initialize Word
-    word = win32com.client.Dispatch('Word.Application')
-    doc = word.Documents.Open(file_path)
-    
-    # Save as .docx
     docx_file_path = os.path.splitext(file_path)[0] + '.docx'
-    doc.SaveAs(docx_file_path, FileFormat=12)  # FileFormat=12 is for .docx
-    doc.Close()
-    word.Quit()
+
+    # Run LibreOffice in headless mode to convert the .doc file to .docx
+    subprocess.run(['libreoffice', '--headless', '--convert-to', 'docx', file_path, '--outdir', os.path.dirname(file_path)])
 
     return docx_file_path
 
@@ -233,7 +228,10 @@ def translate_doc(file_path):
     docx_file_path = doc_to_docx(file_path)
     
     # Translate the .docx file
-    translate_docx(docx_file_path)        
+    translate_docx(docx_file_path)
+
+    # Remove the .docx file
+    os.remove(docx_file_path)       
 #end doc handling        
 
 
