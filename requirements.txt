@@ -25,7 +25,6 @@ beautifulsoup4
 lxml
 html5lib
 bs4
-email
 pyth
 mammoth
 subprocess
