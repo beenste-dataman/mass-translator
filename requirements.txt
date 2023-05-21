@@ -28,4 +28,3 @@ bs4
 email
 rtfread
 mammoth
-pywin32
