@@ -4,7 +4,7 @@ import sys
 from tqdm import tqdm
 import xlrd
 import xlwt
-# Required libraries
+# Required librarie
 import docx
 import openpyxl
 import csv
