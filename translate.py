@@ -15,6 +15,7 @@ import os
 import subprocess
 import email
 import magic
+import re
 from email import policy
 from bs4 import BeautifulSoup
 from transformers import MarianMTModel, MarianTokenizer
