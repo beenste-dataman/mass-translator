@@ -23,7 +23,7 @@ from concurrent.futures import ThreadPoolExecutor
 from odf.opendocument import OpenDocumentText
 from odf.text import P, Span
 from odf import teletype
-from striprtf.striprtf import rtf_to_text
+from striprtf import rtf_to_text
 from docx import Document
 from striprtf import *
 
@@ -216,16 +216,18 @@ def translate_rtf(file_path):
             print(f"Chardet failed with error {e}. Defaulting to ISO-8859-1 decoding.")
             rtf_content = rawdata.decode('ISO-8859-1')
 
-    # Insert a space after each control word
-    rtf_content = re.sub(r"(\\[a-z]+\d*)", r"\1 ", rtf_content)
+    text = rtf_to_text(rtf_content)
 
-    stripped_content = striprtf.striprtf(rtf_content)
-    translated_text = translate_text(stripped_content)
+    # Clean up the text by removing redundant whitespaces
+    text = re.sub(' +', ' ', text)
+    
+    translated_text = translate_text(text)
 
     output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir) + '.txt')
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as output_file:
         output_file.write(translated_text)
+
 
 
 
