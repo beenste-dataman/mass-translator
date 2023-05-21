@@ -24,7 +24,7 @@ from odf.text import P, Span
 from odf import teletype
 from striprtf.striprtf import rtf_to_text
 from docx import Document
-
+from striprtf import *
 
 
 
