@@ -23,6 +23,8 @@ from odf.opendocument import OpenDocumentText
 from odf.text import P, Span
 from odf import teletype
 from striprtf.striprtf import rtf_to_text
+from docx import Document
+
 
 
 
@@ -270,16 +272,21 @@ def translate_eml(file_path):
 
 
 def translate_docx(file_path):
-    doc = docx.Document(file_path)
-    for element in doc.element.body:
-        if isinstance(element, docx.table.Table):
-            for row in element.rows:
-                for cell in row.cells:
-                    cell.text = translate_text(cell.text)
-        elif isinstance(element, docx.text.paragraph.Paragraph):
-            for run in element.runs:
-                run.text = translate_text(run.text)
+    doc = Document(file_path)
+    
+    # Translate all paragraphs
+    for para in doc.paragraphs:
+        for run in para.runs:
+            run.text = translate_text(run.text)
 
+    # Translate all tables
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.text = translate_text(run.text)
+    
     output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     doc.save(output_path)
