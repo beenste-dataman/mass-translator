@@ -26,6 +26,6 @@ lxml
 html5lib
 bs4
 email
-rtfread
+pyth
 mammoth
 subprocess
