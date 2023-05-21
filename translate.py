@@ -14,6 +14,7 @@ import chardet
 import os
 import win32com.client
 import email
+import magic
 from email import policy
 from bs4 import BeautifulSoup
 from transformers import MarianMTModel, MarianTokenizer
