@@ -28,3 +28,4 @@ bs4
 email
 rtfread
 mammoth
+subprocess
