@@ -10,20 +10,50 @@ import openpyxl
 import csv
 import json
 import torch
+import chardet
+import os
+import win32com.client
+import email
+from email import policy
 from bs4 import BeautifulSoup
 from transformers import MarianMTModel, MarianTokenizer
 from concurrent.futures import ThreadPoolExecutor
 from odf.opendocument import OpenDocumentText
 from odf.text import P, Span
 from odf import teletype
+from pyth.plugins.rtf15.reader import Rtf15Reader
+from pyth.plugins.plaintext.writer import PlaintextWriter
+
+
+
+
+
 
 art = '''
-                                 __                              .__          __                
-  _____ _____    ______ ______ _/  |_____________    ____   _____|  | _____ _/  |_  ___________ 
- /     \\__  \  /  ___//  ___/ \   __\_  __ \__  \  /    \ /  ___/  | \__  \\   __\/  _ \_  __ \
-|  Y Y  \/ __ \_\___ \ \___ \   |  |  |  | \// __ \|   |  \\___ \|  |__/ __ \|  | (  <_> )  | \/
-|__|_|  (____  /____  >____  >  |__|  |__|  (____  /___|  /____  >____(____  /__|  \____/|__|   
-      \/     \/     \/     \/                    \/     \/     \/          \/                   
+___________               
+\_   _____/__________     
+ |    __)/  _ \_  __ \    
+ |     \(  <_> )  | \/    
+ \___  / \____/|__|       
+     \/                   
+   _____  .__  .__        
+  /  _  \ |  | |  |       
+ /  /_\  \|  | |  |       
+/    |    \  |_|  |__     
+\____|__  /____/____/     
+        \/                
+___________               
+\__    ___/___            
+  |    | /  _ \           
+  |    |(  <_> )          
+  |____| \____/           
+                          
+  _________               
+ /   _____/ ____   ____   
+ \_____  \_/ __ \_/ __ \  
+ /        \  ___/\  ___/  
+/_______  /\___  >\___  > 
+        \/     \/     \/  
 '''
 
 print(art)
@@ -134,7 +164,12 @@ def translate_file(file_path):
         translate_odt(file_path)
     elif file_ext == ".txt":
         translate_txt(file_path)
-    
+    elif file_ext == ".rtf":
+        translate_rtf(file_path)       
+    elif file_ext == ".doc":
+        translate_doc(file_path) 
+    elif file_ext == ".eml":
+        translate_eml(file_path)        
     else:
         print(f"Unsupported file type: {file_ext}")
 
@@ -153,15 +188,91 @@ def translate_dict(obj):
 
    
 # Define translation functions for each file type
+def translate_rtf(file_path):
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            rtf_content = file.read()
+    except UnicodeDecodeError:
+        with open(file_path, "rb") as file:
+            rawdata = file.read()
+        encoding = chardet.detect(rawdata)['encoding']
+        try:
+            rtf_content = rawdata.decode(encoding)
+        except Exception as e:
+            print(f"Chardet failed with error {e}. Defaulting to ISO-8859-1 decoding.")
+            rtf_content = rawdata.decode('ISO-8859-1')
+
+    doc = Rtf15Reader.read(rtf_content)
+    rtf_text = extract_text(doc)
+
+    translated_rtf_text = translate_text(rtf_text)
+
+    output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir) + '.txt')
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as output_file:
+        output_file.write(translated_rtf_text)
+
+#doc handling        
+        
+def doc_to_docx(file_path):
+    # Initialize Word
+    word = win32com.client.Dispatch('Word.Application')
+    doc = word.Documents.Open(file_path)
+    
+    # Save as .docx
+    docx_file_path = os.path.splitext(file_path)[0] + '.docx'
+    doc.SaveAs(docx_file_path, FileFormat=12)  # FileFormat=12 is for .docx
+    doc.Close()
+    word.Quit()
+
+    return docx_file_path
+
+def translate_doc(file_path):
+    # Convert .doc to .docx
+    docx_file_path = doc_to_docx(file_path)
+    
+    # Translate the .docx file
+    translate_docx(docx_file_path)        
+#end doc handling        
+
+
+def translate_eml(file_path):
+    # Open the .eml file and parse it into a EmailMessage object
+    with open(file_path, "r") as file:
+        msg = email.message_from_file(file, policy=policy.default)
+
+    # Translate the subject and body of the email
+    if msg['Subject']:
+        msg['Subject'] = translate_text(msg['Subject'])
+    if msg.get_body():
+        msg.set_content(translate_text(msg.get_body().get_content()))
+
+    # Save the translated email to the output directory
+    output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w") as output_file:
+        output_file.write(msg.as_string())
+
+
+
+
+
+
 def translate_docx(file_path):
     doc = docx.Document(file_path)
-    for paragraph in doc.paragraphs:
-        translated_text = translate_text(paragraph.text)
-        paragraph.text = translated_text
+    for element in doc.element.body:
+        if isinstance(element, docx.table.Table):
+            for row in element.rows:
+                for cell in row.cells:
+                    cell.text = translate_text(cell.text)
+        elif isinstance(element, docx.text.paragraph.Paragraph):
+            for run in element.runs:
+                run.text = translate_text(run.text)
 
     output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     doc.save(output_path)
+
 
 def translate_xlsx(file_path):
     workbook = openpyxl.load_workbook(file_path)
@@ -261,18 +372,28 @@ def translate_odt(file_path):
     translated_document.save(output_path)   
     
     
+
+
 def translate_txt(file_path):
-    with open(file_path, "r", encoding="utf-8") as file:
-        content = file.read()
+    try:
+        # Detect the file encoding
+        rawdata = open(file_path, 'rb').read()
+        result = chardet.detect(rawdata)
+        file_encoding = result['encoding']
 
-    translated_content = translate_text(content)
+        # Open the file with the detected encoding
+        with open(file_path, "r", encoding=file_encoding) as file:
+            content = file.read()
 
-    output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as output_file:
-        output_file.write(translated_content)
+        translated_content = translate_text(content)
 
-        
+        output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w", encoding='utf-8') as output_file:  # saving the translated text as utf-8
+            output_file.write(translated_content)
+    except Exception as e:
+        print(f"Error processing {file_path}: {e}")
+
         
         
         
