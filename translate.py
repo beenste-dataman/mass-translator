@@ -273,23 +273,30 @@ def translate_eml(file_path):
 
 def translate_docx(file_path):
     doc = Document(file_path)
-    
+
     # Translate all paragraphs
     for para in doc.paragraphs:
         for run in para.runs:
-            run.text = translate_text(run.text)
+            try:
+                run.text = translate_text(run.text)
+            except Exception as e:
+                print(f"Error translating paragraph in {file_path}: {e}")
 
     # Translate all tables
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
-                for paragraph in cell.paragraphs:
-                    for run in paragraph.runs:
-                        run.text = translate_text(run.text)
-    
+                try:
+                    for paragraph in cell.paragraphs:
+                        for run in paragraph.runs:
+                            run.text = translate_text(run.text)
+                except Exception as e:
+                    print(f"Error translating table cell in {file_path}: {e}")
+
     output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     doc.save(output_path)
+
 
 
 def translate_xlsx(file_path):
