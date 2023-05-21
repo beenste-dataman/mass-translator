@@ -1,0 +1,39 @@
+from docx.oxml.ns import nsdecls
+from docx.oxml import parse_xml
+
+def iter_block_items(parent):
+    """
+    Yield each paragraph and table child within *parent*, in document order.
+    Each returned value is an instance of either Paragraph or Table.
+    """
+    from docx.table import _Cell, Table
+    from docx.text.paragraph import Paragraph
+
+    if isinstance(parent, _Cell):
+        parent_elm = parent._tc
+    else:
+        parent_elm = parent._element
+
+    for child in parent_elm.iterchildren():
+        if isinstance(child, docx.oxml.text.paragraph.CT_P):
+            yield Paragraph(child, parent)
+        elif isinstance(child, docx.oxml.table.CT_Tbl):
+            yield Table(child, parent)
+
+def translate_docx(file_path):
+    doc = Document(file_path)
+
+    for block in iter_block_items(doc):
+        if isinstance(block, Paragraph):
+            for run in block.runs:
+                run.text = translate_text(run.text)
+        elif isinstance(block, Table):
+            for row in block.rows:
+                for cell in row.cells:
+                    for paragraph in iter_block_items(cell):
+                        for run in paragraph.runs:
+                            run.text = translate_text(run.text)
+
+    output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir))
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    doc.save(output_path)
