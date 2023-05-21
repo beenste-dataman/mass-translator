@@ -187,24 +187,48 @@ def translate_dict(obj):
     else:
         return obj
 
+     
+     
+     
+     
+     
+     
+     
    
 # Define translation functions for each file type
+
+
+#rtf handling
+def rtf_to_text(rtf_content):
+    # Parse the RTF content into a document
+    doc = Rtf15Reader.read(rtf_content)
+    
+    # Extract text from the document
+    text_content = PlaintextWriter.write(doc).getvalue()
+
+    return text_content
+   
+   
 def translate_rtf(file_path):
     try:
+        # Attempt to open the file using utf-8 encoding
         with open(file_path, "r", encoding="utf-8") as file:
-            rtf_content = file.read()
+            doc = Rtf15Reader.read_from_file(file)
     except UnicodeDecodeError:
+        # If opening with utf-8 fails, detect the file's encoding
         with open(file_path, "rb") as file:
             rawdata = file.read()
         encoding = chardet.detect(rawdata)['encoding']
         try:
-            rtf_content = rawdata.decode(encoding)
+            # Try to open the file with the detected encoding
+            with open(file_path, "r", encoding=encoding) as file:
+                doc = Rtf15Reader.read_from_file(file)
         except Exception as e:
             print(f"Chardet failed with error {e}. Defaulting to ISO-8859-1 decoding.")
-            rtf_content = rawdata.decode('ISO-8859-1')
+            with open(file_path, "r", encoding='ISO-8859-1') as file:
+                doc = Rtf15Reader.read_from_file(file)
 
-    doc = Rtf15Reader.read(rtf_content)
-    rtf_text = extract_text(doc)
+    rtf_text = rtf_to_text(doc)
 
     translated_rtf_text = translate_text(rtf_text)
 
@@ -212,6 +236,10 @@ def translate_rtf(file_path):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as output_file:
         output_file.write(translated_rtf_text)
+   
+
+
+#end rtf handling
 
 #doc handling        
         
