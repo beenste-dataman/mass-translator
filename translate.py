@@ -22,9 +22,8 @@ from concurrent.futures import ThreadPoolExecutor
 from odf.opendocument import OpenDocumentText
 from odf.text import P, Span
 from odf import teletype
-from rtfp.parser.rtf_parser import RtfParser
-from rtfp.document.document import Document
-from rtfp.document.character import Character
+from striprtf.striprtf import rtf_to_text
+
 
 
 
@@ -200,19 +199,6 @@ def translate_dict(obj):
 
 
 #rtf handling
-def rtf_to_text(rtf_str):
-    class MyDocument(Document):
-        def __init__(self):
-            self.data = []
-
-        def add(self, element):
-            if isinstance(element, Character):
-                self.data.append(str(element))
-
-    mydoc = MyDocument()
-    RtfParser().parse(rtf_str, mydoc)
-    return ''.join(mydoc.data)
-
 def translate_rtf(file_path):
     try:
         with open(file_path, 'rb') as f:
