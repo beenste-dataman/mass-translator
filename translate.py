@@ -22,8 +22,9 @@ from concurrent.futures import ThreadPoolExecutor
 from odf.opendocument import OpenDocumentText
 from odf.text import P, Span
 from odf import teletype
-from pyth.plugins.rtf15.reader import Rtf15Reader
-from pyth.plugins.plaintext.writer import PlaintextWriter
+from rtfp.parser.rtf_parser import RtfParser
+from rtfp.document.document import Document
+from rtfp.document.character import Character
 
 
 
@@ -199,36 +200,33 @@ def translate_dict(obj):
 
 
 #rtf handling
-def rtf_to_text(rtf_content):
-    # Parse the RTF content into a document
-    doc = Rtf15Reader.read(rtf_content)
-    
-    # Extract text from the document
-    text_content = PlaintextWriter.write(doc).getvalue()
+def rtf_to_text(rtf_str):
+    class MyDocument(Document):
+        def __init__(self):
+            self.data = []
 
-    return text_content
-   
-   
+        def add(self, element):
+            if isinstance(element, Character):
+                self.data.append(str(element))
+
+    mydoc = MyDocument()
+    RtfParser().parse(rtf_str, mydoc)
+    return ''.join(mydoc.data)
+
 def translate_rtf(file_path):
     try:
-        # Attempt to open the file using utf-8 encoding
-        with open(file_path, "r", encoding="utf-8") as file:
-            doc = Rtf15Reader.read_from_file(file)
+        with open(file_path, 'rb') as f:
+            rtf_content = f.read()
+        rtf_text = rtf_to_text(rtf_content.decode("utf-8"))
     except UnicodeDecodeError:
-        # If opening with utf-8 fails, detect the file's encoding
         with open(file_path, "rb") as file:
             rawdata = file.read()
         encoding = chardet.detect(rawdata)['encoding']
         try:
-            # Try to open the file with the detected encoding
-            with open(file_path, "r", encoding=encoding) as file:
-                doc = Rtf15Reader.read_from_file(file)
+            rtf_text = rtf_to_text(rawdata.decode(encoding))
         except Exception as e:
             print(f"Chardet failed with error {e}. Defaulting to ISO-8859-1 decoding.")
-            with open(file_path, "r", encoding='ISO-8859-1') as file:
-                doc = Rtf15Reader.read_from_file(file)
-
-    rtf_text = rtf_to_text(doc)
+            rtf_text = rtf_to_text(rawdata.decode('ISO-8859-1'))
 
     translated_rtf_text = translate_text(rtf_text)
 
