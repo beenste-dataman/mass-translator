@@ -215,18 +215,17 @@ def translate_rtf(file_path):
             print(f"Chardet failed with error {e}. Defaulting to ISO-8859-1 decoding.")
             rtf_content = rawdata.decode('ISO-8859-1')
 
-    try:
-        rtf_text = striprtf.rtf_to_text(rtf_content)
-    except IndexError as e:
-        print(f"Error processing RTF file {file_path}. Skipping file due to error: {e}")
-        return
+    # Insert a space after each control word
+    rtf_content = re.sub(r"(\\[a-z]+\d*)", r"\1 ", rtf_content)
 
-    translated_rtf_text = translate_text(rtf_text)
+    stripped_content = striprtf.striprtf(rtf_content)
+    translated_text = translate_text(stripped_content)
 
     output_path = os.path.join(output_dir, os.path.relpath(file_path, input_dir) + '.txt')
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as output_file:
-        output_file.write(translated_rtf_text)
+        output_file.write(translated_text)
+
 
 
 
