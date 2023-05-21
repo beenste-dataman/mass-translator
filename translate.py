@@ -203,18 +203,23 @@ def translate_dict(obj):
 #rtf handling
 def translate_rtf(file_path):
     try:
-        with open(file_path, 'rb') as f:
-            rtf_content = f.read()
-        rtf_text = rtf_to_text(rtf_content.decode("utf-8"))
+        with open(file_path, "r", encoding="utf-8") as file:
+            rtf_content = file.read()
     except UnicodeDecodeError:
         with open(file_path, "rb") as file:
             rawdata = file.read()
         encoding = chardet.detect(rawdata)['encoding']
         try:
-            rtf_text = rtf_to_text(rawdata.decode(encoding))
+            rtf_content = rawdata.decode(encoding)
         except Exception as e:
             print(f"Chardet failed with error {e}. Defaulting to ISO-8859-1 decoding.")
-            rtf_text = rtf_to_text(rawdata.decode('ISO-8859-1'))
+            rtf_content = rawdata.decode('ISO-8859-1')
+
+    try:
+        rtf_text = striprtf.rtf_to_text(rtf_content)
+    except IndexError as e:
+        print(f"Error processing RTF file {file_path}. Skipping file due to error: {e}")
+        return
 
     translated_rtf_text = translate_text(rtf_text)
 
@@ -222,7 +227,7 @@ def translate_rtf(file_path):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as output_file:
         output_file.write(translated_rtf_text)
-   
+
 
 
 #end rtf handling
