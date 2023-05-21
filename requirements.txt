@@ -19,7 +19,6 @@ pyenchant
 Flask
 flask-restful
 python-magic
-python-magic-bin
 chardet
 odfpy
 beautifulsoup4
